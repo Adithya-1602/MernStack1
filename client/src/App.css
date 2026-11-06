@@ -1,0 +1,10 @@
+.navbar{
+    display:flex;
+    justify-content: space-between;
+    padding-left:80px;
+    padding-right: 80px;
+}
+
+.nav-home{
+    margin-right: 10px;
+}
