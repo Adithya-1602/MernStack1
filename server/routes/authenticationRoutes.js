@@ -69,14 +69,14 @@ const passwordMiddleware = (req, res, next) => {
 
       if (user) {
         console.log(user.password, password);
-        
+
         bcrypt.compare(password, user.password, (err, result) => {
           if (result) {
             console.log(result);
             if (result) {
               next();
-            }else{
-              res.send({message: "Password does not match", token: null})
+            } else {
+              res.send({ message: "Password does not match", token: null });
             }
           } else {
             console.log(err);
@@ -95,7 +95,7 @@ const CreateToken = (req, res, next) => {
   const user = req.user;
   const email = user.email;
 
-  const token = jwt.sign({ email }, "json123");
+  const token = jwt.sign({ email }, process.env.JWT_SECRET);
   console.log(token);
 
   req.token = token;
@@ -103,18 +103,17 @@ const CreateToken = (req, res, next) => {
 };
 
 router.post("/login", passwordMiddleware, CreateToken, (req, res) => {
-
   console.log("user", req.user);
-  
+
   const user = req.user;
   const token = req.token;
-  
-    res.send({
-      message: "User logged in successfully",
-      token: token,
-      role: user.role,
-      user: user,
-    });  
+
+  res.send({
+    message: "User logged in successfully",
+    token: token,
+    role: user.role,
+    user: user,
+  });
 });
 
 module.exports = router;
