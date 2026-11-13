@@ -2,6 +2,7 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import "./ProductDetail.css";
+import apiUrl from "../../apiUrl";
 
 const ProductDetail = () => {
   const { prod_id, prod_name, prod_imgloc, prod_imgname } = useParams();
@@ -13,7 +14,7 @@ const ProductDetail = () => {
 
   const getProduct = () => {
     axios
-      .get("http://localhost:5000/products/getproduct/" + prod_id)
+      .get(apiUrl + "/products/getproduct/" + prod_id)
       .then((res) => {
         console.log(res.data);
         setproduct(res.data);
@@ -28,7 +29,7 @@ const ProductDetail = () => {
     console.log(product._id);
 
     axios
-      .post("http://localhost:5000/cart/addtocart", {
+      .post(apiUrl + "/cart/addtocart", {
         user_id: user._id,
         product_id: product._id,
       })
@@ -47,19 +48,16 @@ const ProductDetail = () => {
   return (
     <div className="product_detail">
       <div className="image">
-        <img
-          src={"http://localhost:5000/" + product?.image}
-          alt="Product image"
-        />
+        <img src={apiUrl + "/" + product?.image} alt="Product image" />
       </div>
       <div className="details">
         <div className="prod_name">{product?.name}</div>
 
         <div>{product?.price}</div>
         <div>{product?.description}</div>
-      
-      <button onClick={handleCart}>Add to cart</button>
-    </div>
+
+        <button onClick={handleCart}>Add to cart</button>
+      </div>
     </div>
   );
 };

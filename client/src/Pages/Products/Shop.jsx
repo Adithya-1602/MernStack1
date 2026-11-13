@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import apiUrl from "../../apiUrl";
 
 const Shop = () => {
   const [products, setproducts] = useState([]);
@@ -8,7 +9,7 @@ const Shop = () => {
 
   const getAllProducts = () => {
     axios
-      .get("http://localhost:5000/products/all_products")
+      .get(apiUrl + "/products/all_products")
       .then((res) => {
         console.log(res.data);
         setproducts(res.data);
@@ -20,7 +21,7 @@ const Shop = () => {
 
   const handleDelete = (id) => {
     axios
-      .post("http://localhost:5000/products/delete", {
+      .post(apiUrl + "/products/delete", {
         _id: id,
       })
       .then((res) => {
@@ -47,7 +48,7 @@ const Shop = () => {
             <h1>{product.name}</h1>
             <h1>{product.price}</h1>
             <h1>{product.description}</h1>
-            <img src={"http://localhost:5000/" + product.image} alt="" />
+            <img src={apiUrl + "/" + product.image} alt="" />
             <button
               onClick={() => {
                 handleDelete(product._id);

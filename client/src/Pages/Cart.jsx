@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./Cart.css";
+import apiUrl from "../apiUrl";
 
 const Cart = () => {
   const [cart, setcart] = useState(null);
 
   const getcart = () => {
     axios
-      .get("http://localhost:5000/cart/getcart")
+      .get(apiUrl + "/cart/getcart")
       .then((res) => {
         setcart(res.data);
       })
@@ -24,7 +25,7 @@ const Cart = () => {
 
   const handleDelete = (cart_id) => {
     axios
-      .post("http://localhost:5000/cart/deletecart", {
+      .post(apiUrl + "/cart/deletecart", {
         cart_id,
       })
       .then((res) => {
@@ -49,10 +50,7 @@ const Cart = () => {
           .filter((item) => item.user_id._id == user._id)
           .map((item) => (
             <div className="cart_item" key={item.id}>
-              <img
-                src={"http://localhost:5000/" + item.product_id.image}
-                alt=""
-              />
+              <img src={apiUrl + "/" + item.product_id.image} alt="" />
               <h1>{item.product_id.name}</h1>
               <button
                 onClick={() => {

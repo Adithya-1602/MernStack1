@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-
+import apiUrl from "../apiUrl";
 
 const Login = () => {
   const [email, setemail] = useState("");
@@ -11,7 +11,7 @@ const Login = () => {
 
   const handleClick = () => {
     axios
-      .post("http://localhost:5000/auth/login", {
+      .post(apiUrl + "/auth/login", {
         email,
         password,
       })
@@ -21,7 +21,7 @@ const Login = () => {
         if (res.data.token) {
           localStorage.setItem("login_token", res.data.token);
           localStorage.setItem("role", res.data.role);
-          localStorage.setItem("user", JSON.stringify( res.data.user));
+          localStorage.setItem("user", JSON.stringify(res.data.user));
 
           if (res.data.role == "admin") {
             window.location.href = "/admin";

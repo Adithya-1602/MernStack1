@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from "axios";
+import apiUrl from "../apiUrl";
+
 
 const Signup = () => {
   const [name, setname] = useState("");
@@ -19,7 +21,7 @@ const Signup = () => {
       role,
     });
 
-    axios.post("http://localhost:5000/auth/register", {
+    axios.post( apiUrl + "/auth/register", {
       name,
       email,
       password,
