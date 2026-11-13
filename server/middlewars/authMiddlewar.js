@@ -1,3 +1,7 @@
+const bcrypt = require("bcrypt");
+const User = require("../models/userModel");
+const jwt = require("jsonwebtoken");
+
 const hashPasswordMiddlewar = (req, res, next) => {
   const { password, passConfrim } = req.body;
 
@@ -61,5 +65,4 @@ const CreateToken = (req, res, next) => {
   next();
 };
 
-
-module.exports = {hashPasswordMiddlewar, passwordMiddleware, CreateToken};
+module.exports = { hashPasswordMiddlewar, passwordMiddleware, CreateToken };

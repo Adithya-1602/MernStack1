@@ -34,7 +34,8 @@ mongoose
     console.log(err);
   });
 
+  const PORT = process.env.PORT || 5000;
 //app deploy on localhost in port no.
-app.listen(5000, () => {
-  console.log("Server is running on port 5000");
+app.listen(PORT, () => {
+  console.log("Server listen on port 5000");
 });
