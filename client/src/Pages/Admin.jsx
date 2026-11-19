@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import apiUrl from "../apiUrl";
 
-
 const Admin = () => {
   const [product_name, setproduct_name] = useState("");
   const [price, setprice] = useState("");
@@ -20,11 +19,11 @@ const Admin = () => {
     formdata.append("product_name", product_name);
     formdata.append("price", price);
     formdata.append("description", description);
-    if(image) {
-    formdata.append("image", image);
+    if (image) {
+      formdata.append("image", image);
     }
 
-    for(let i = 0; i < gallery.length; i++) {
+    for (let i = 0; i < gallery.length; i++) {
       formdata.append("gallery", gallery[i]);
     }
 
@@ -94,7 +93,7 @@ const Admin = () => {
           placeholder=""
           onChange={(e) => setimage(e.target.files[0])}
         />
-         <input
+        <input
           type="file"
           multiple
           placeholder="gallery image"
@@ -110,9 +109,9 @@ const Admin = () => {
             <h1>{product.name}</h1>
             <h1>{product.price}</h1>
             <h1>{product.description}</h1>
-            <img src={"apiUrl" + product.image} alt="" />
+            <img src={product.image} alt="" />
             {product.gallery.map((image) => (
-              <img src={"apiUrl" + image} alt="" />
+              <img src={image} alt="" />
             ))}
             <button
               onClick={() => {
