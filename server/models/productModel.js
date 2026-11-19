@@ -7,6 +7,7 @@ const productSchema = new mongoose.Schema({
   image: String,
   cloudinaryPublicId: String,
   gallery: [String],
+  galleryPublicIds: [String],
 });
 
 const Product = mongoose.model("Product", productSchema);

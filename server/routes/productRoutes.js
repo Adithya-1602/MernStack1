@@ -1,17 +1,19 @@
 const express = require("express");
 const Product = require("../models/productModel");
+
 const upload = require("../fileupload/uploadMiddleware");
 const uploadToCloudinary = require("../fileupload/cloudinaryUpload");
 const cloudinary = require("../config/cloudinary");
 
 const router = express.Router();
 
+// =====================================
 // ADD PRODUCT WITH CLOUDINARY IMAGES
 // =====================================
 
 router.post(
   "/add_product",
-  uploadToCloudinary.fields([
+  upload.fields([
     { name: "image", maxCount: 1 },
     { name: "gallery", maxCount: 5 },
   ]),
@@ -30,16 +32,17 @@ router.post(
       }
 
       // Validate main image
-      if (!req.files || !req.files.image || !req.files.image[0]) {
+      if (!req.files?.image?.[0]) {
         return res.status(400).json({
           success: false,
           message: "Please upload a main product image",
         });
       }
 
-      // Upload main image
+      // Upload main image to Cloudinary
       const mainImageResult = await uploadToCloudinary(
         req.files.image[0].buffer,
+        "mern-products",
       );
 
       uploadedImages.push(mainImageResult.public_id);
@@ -47,20 +50,21 @@ router.post(
       // Upload gallery images
       const galleryResults = [];
 
-      if (req.files.gallery) {
-        for (const file of req.files.gallery) {
-          const result = await uploadToCloudinary(file.buffer);
+      for (const file of req.files.gallery || []) {
+        const result = await uploadToCloudinary(
+          file.buffer,
+          "mern-products/gallery",
+        );
 
-          uploadedImages.push(result.public_id);
+        uploadedImages.push(result.public_id);
 
-          galleryResults.push({
-            url: result.secure_url,
-            public_id: result.public_id,
-          });
-        }
+        galleryResults.push({
+          url: result.secure_url,
+          public_id: result.public_id,
+        });
       }
 
-      // Create product
+      // Create product in MongoDB
       const product = new Product({
         name: product_name,
         price: Number(price),
@@ -77,20 +81,20 @@ router.post(
 
       await product.save();
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: "Product added successfully",
-        product: product,
+        product,
       });
     } catch (error) {
       console.error("Product upload error:", error);
 
-      // Remove uploaded Cloudinary images if saving fails
+      // Delete uploaded images if product creation fails
       await Promise.allSettled(
         uploadedImages.map((id) => cloudinary.uploader.destroy(id)),
       );
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: "Product upload failed",
         error: error.message,
@@ -107,11 +111,12 @@ router.get("/all_Products", async (req, res) => {
   try {
     const products = await Product.find();
 
-    res.status(200).json(products);
+    return res.status(200).json(products);
   } catch (error) {
-    console.error(error);
+    console.error("Fetch products error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
+      success: false,
       message: "Unable to fetch products",
     });
   }
@@ -133,15 +138,17 @@ router.post("/get/products/:product_name", async (req, res) => {
 
     if (!product) {
       return res.status(404).json({
+        success: false,
         message: "Product not found",
       });
     }
 
-    res.status(200).json(product);
+    return res.status(200).json(product);
   } catch (error) {
-    console.error(error);
+    console.error("Fetch product error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
+      success: false,
       message: "Unable to fetch product",
     });
   }
@@ -157,6 +164,7 @@ router.post("/delete", async (req, res) => {
 
     if (!product) {
       return res.status(404).json({
+        success: false,
         message: "Product not found",
       });
     }
@@ -174,16 +182,17 @@ router.post("/delete", async (req, res) => {
     }
 
     // Delete product from MongoDB
-    await Product.findByIdAndDelete(req.body._id);
+    await Product.findByIdAndDelete(product._id);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Product deleted successfully",
     });
   } catch (error) {
-    console.error("Delete error:", error);
+    console.error("Delete product error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
+      success: false,
       message: "Product deletion failed",
       error: error.message,
     });
@@ -200,15 +209,17 @@ router.get("/getproduct/:id", async (req, res) => {
 
     if (!product) {
       return res.status(404).json({
+        success: false,
         message: "Product not found",
       });
     }
 
-    res.status(200).json(product);
+    return res.status(200).json(product);
   } catch (error) {
-    console.error(error);
+    console.error("Get product error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
+      success: false,
       message: "Unable to fetch product",
     });
   }
