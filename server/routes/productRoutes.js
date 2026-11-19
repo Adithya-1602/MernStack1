@@ -1,95 +1,217 @@
 const express = require("express");
 const Product = require("../models/productModel");
-const upload = require("../fileupload/uploadMiddlewar");
+const upload = require("../fileupload/uploadMiddleware");
+const uploadToCloudinary = require("../fileupload/cloudinaryUpload");
+const cloudinary = require("../config/cloudinary");
 
 const router = express.Router();
 
+// ADD PRODUCT WITH CLOUDINARY IMAGES
+// =====================================
+
 router.post(
   "/add_product",
-  upload.fields([
+  uploadToCloudinary.fields([
     { name: "image", maxCount: 1 },
     { name: "gallery", maxCount: 5 },
   ]),
-  (req, res) => {
-    console.log(req.body);
-    console.log(Date.now());
+  async (req, res) => {
+    let uploadedImages = [];
 
-    console.log("files", req.files);
-    console.log("image file", req.files["image"]);
-    console.log("gallery file", req.files["gallery"]);
+    try {
+      const { product_name, price, description } = req.body;
 
-    const { product_name, price, description } = req.body;
-    const image = req.files["image"][0].path;
+      // Validate product details
+      if (!product_name || !price || !description) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide all product details",
+        });
+      }
 
-    const gallerypath = [];
+      // Validate main image
+      if (!req.files || !req.files.image || !req.files.image[0]) {
+        return res.status(400).json({
+          success: false,
+          message: "Please upload a main product image",
+        });
+      }
 
-    for (let i = 0; i < req.files["gallery"].length; i++) {
-      gallerypath.push(req.files["gallery"][i].path);
-    }
+      // Upload main image
+      const mainImageResult = await uploadToCloudinary(
+        req.files.image[0].buffer,
+      );
 
-    console.log(gallerypath);
+      uploadedImages.push(mainImageResult.public_id);
 
-    const product = new Product({
-      name: product_name,
-      price,
-      description,
-      image,
-      gallery: gallerypath,
-    });
+      // Upload gallery images
+      const galleryResults = [];
 
-    product
-      .save()
-      .then(() => {
-        res.send("Product added successfuly");
-      })
-      .catch((er) => {
-        console.log(er);
+      if (req.files.gallery) {
+        for (const file of req.files.gallery) {
+          const result = await uploadToCloudinary(file.buffer);
+
+          uploadedImages.push(result.public_id);
+
+          galleryResults.push({
+            url: result.secure_url,
+            public_id: result.public_id,
+          });
+        }
+      }
+
+      // Create product
+      const product = new Product({
+        name: product_name,
+        price: Number(price),
+        description: description,
+
+        // Main image
+        image: mainImageResult.secure_url,
+        cloudinaryPublicId: mainImageResult.public_id,
+
+        // Gallery images
+        gallery: galleryResults.map((item) => item.url),
+        galleryPublicIds: galleryResults.map((item) => item.public_id),
       });
+
+      await product.save();
+
+      res.status(201).json({
+        success: true,
+        message: "Product added successfully",
+        product: product,
+      });
+    } catch (error) {
+      console.error("Product upload error:", error);
+
+      // Remove uploaded Cloudinary images if saving fails
+      await Promise.allSettled(
+        uploadedImages.map((id) => cloudinary.uploader.destroy(id)),
+      );
+
+      res.status(500).json({
+        success: false,
+        message: "Product upload failed",
+        error: error.message,
+      });
+    }
   },
 );
 
-router.get("/all_Products", (req, res) => {
-  Product.find()
-    .then((product) => {
-      res.send(product);
-    })
-    .catch((er) => {
-      console.log(er);
+// =====================================
+// GET ALL PRODUCTS
+// =====================================
+
+router.get("/all_Products", async (req, res) => {
+  try {
+    const products = await Product.find();
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Unable to fetch products",
     });
+  }
 });
 
-router.post("/get/products/:product_name", (req, res) => {
-  const { product_name } = req.params;
-  const { price } = req.body;
+// =====================================
+// GET PRODUCT BY NAME AND PRICE
+// =====================================
 
-  Product.findOne({ name: product_name, price })
-    .then((product) => {
-      res.send(product);
-    })
-    .catch((er) => {
-      console.log(er);
+router.post("/get/products/:product_name", async (req, res) => {
+  try {
+    const { product_name } = req.params;
+    const { price } = req.body;
+
+    const product = await Product.findOne({
+      name: product_name,
+      price: price,
     });
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    res.status(200).json(product);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Unable to fetch product",
+    });
+  }
 });
 
-router.post("/delete", (req, res) => {
-  Product.findByIdAndDelete(req.body._id)
-    .then(() => {
-      res.send("product deleted successfully");
-    })
-    .catch((er) => {
-      console.log(er);
+// =====================================
+// DELETE PRODUCT AND CLOUDINARY IMAGES
+// =====================================
+
+router.post("/delete", async (req, res) => {
+  try {
+    const product = await Product.findById(req.body._id);
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    // Delete main image from Cloudinary
+    if (product.cloudinaryPublicId) {
+      await cloudinary.uploader.destroy(product.cloudinaryPublicId);
+    }
+
+    // Delete gallery images from Cloudinary
+    if (product.galleryPublicIds?.length) {
+      await Promise.all(
+        product.galleryPublicIds.map((id) => cloudinary.uploader.destroy(id)),
+      );
+    }
+
+    // Delete product from MongoDB
+    await Product.findByIdAndDelete(req.body._id);
+
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
     });
+  } catch (error) {
+    console.error("Delete error:", error);
+
+    res.status(500).json({
+      message: "Product deletion failed",
+      error: error.message,
+    });
+  }
 });
 
-router.get("/getproduct/:id", (req, res) => {
-  Product.findById(req.params.id)
-    .then((product) => {
-      console.log(product);
-      res.send(product);
-    })
-    .catch((er) => {
-      console.log(er);
+// =====================================
+// GET PRODUCT BY ID
+// =====================================
+
+router.get("/getproduct/:id", async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    res.status(200).json(product);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Unable to fetch product",
     });
+  }
 });
 
 module.exports = router;
